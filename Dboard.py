@@ -153,6 +153,87 @@ with col3:
     st.plotly_chart(fig5_line_2, use_container_width=True)
     st.plotly_chart(fig5_line_3, use_container_width=True)
 
+def meantimebwfailures():
+    # Example vibration data with dates (Week column) and vibration levels
+    # Replace with your actual weekly_data for each production line
+    weekly_data = pd.DataFrame({
+        'Week': pd.date_range(start='2022-01-01', periods=52, freq='W'),
+        'Vibration Level (mm/s)': [7, 7.5, 8.1, 6.9, 7.8, 9.0, 6.7, 7.9, 8.5, 6.5, 8.2, 7.4, 6.8, 8.6, 9.2, 7.3, 8.0, 7.1, 6.9, 8.3, 8.9, 7.6, 6.8, 8.4, 8.0, 7.2, 6.9, 8.3, 7.9, 9.1, 6.8, 7.7, 8.0, 6.9, 7.5, 7.8, 8.2, 6.7, 7.4, 8.9, 7.5, 8.2, 9.1, 7.3, 7.8, 9.0, 8.4, 7.2, 6.9, 8.5, 7.3, 7.8],
+        'Production Line': ['Line 1']*52
+    })
+
+    # Define vibration threshold for failure
+    threshold = 5
+
+    # Calculate MTBF (Mean Time Between Failures)
+    failure_dates = weekly_data[weekly_data['Vibration Level (mm/s)'] > threshold]['Week']
+    mtbf = failure_dates.diff().dt.days.fillna(0)  # Difference in days between failures
+    weekly_data['MTBF'] = mtbf  # Add MTBF to the dataframe
+
+    # Plot MTBF over time
+    fig = px.line(weekly_data, 
+                x='Week', 
+                y='MTBF', 
+                title='Mean Time Between Failures (MTBF)',
+                labels={'Week': 'Week Starting', 'MTBF': 'Mean Time Between Failures (Days)'},
+                line_shape='linear')
+
+    # Customize the layout
+    fig.update_layout(
+        xaxis_title='Week Starting',
+        yaxis_title='MTBF (Days)',
+        width = 800,
+        height = 800,
+        font=dict(size=12),
+        hovermode='x unified'
+    )
+
+    return fig
+
+# st.plotly_chart(meantimebwfailures(), use_container_width=True)
+
+def correlationplot():
+    data = df[['Downtime (hrs)', 'Bearing Health Score (%)', 'Lubrication Level (%)',\
+            'Vibration Level (mm/s)', 'Energy Consumption (kWh)', 'Machine Runtime (hrs)','Temperature (°C)']]
+
+    # Calculate correlation matrix
+    corr_matrix = data.corr()
+
+    # Create a heatmap with Plotly
+    fig = px.imshow(
+        corr_matrix,
+        text_auto=True,
+        labels=dict(x="Metrics", y="Metrics", color="Correlation"),
+        x=data.columns,
+        y=data.columns,
+        color_continuous_scale='RdBu_r',
+        zmin=-1, zmax=1
+    )
+
+    # Remove x-axis ticks
+    fig.update_xaxes(showticklabels=False)
+
+    # Update layout for better readability
+    fig.update_layout(
+        title="Correlation Heatmap Between Machine Metrics",
+        width=800,
+        height=800,
+        xaxis_title="",
+        yaxis_title="",
+        font=dict(size=12)
+    )
+    return fig
+
+# st.plotly_chart(correlationplot(), use_container_width=True)
+
+r2col1, r2col2 = st.columns([1, 1])  # Set equal width for both columns
+
+with r2col1:
+    st.plotly_chart(meantimebwfailures(), use_container_width=True)  # MTBF plot
+
+with r2col2:
+    st.plotly_chart(correlationplot(), use_container_width=True)  # Correlation plot
+
 def scatterplot3d():
     # Create a 3D scatter plot
     fig = px.scatter_3d(df, 
