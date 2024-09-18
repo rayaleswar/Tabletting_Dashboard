@@ -154,36 +154,45 @@ with col3:
     st.plotly_chart(fig5_line_3, use_container_width=True)
 
 def meantimebwfailures():
-    # Example vibration data with dates (Week column) and vibration levels
-    # Replace with your actual weekly_data for each production line
-    weekly_data = pd.DataFrame({
-        'Week': pd.date_range(start='2022-01-01', periods=52, freq='W'),
-        'Vibration Level (mm/s)': [7, 7.5, 8.1, 6.9, 7.8, 9.0, 6.7, 7.9, 8.5, 6.5, 8.2, 7.4, 6.8, 8.6, 9.2, 7.3, 8.0, 7.1, 6.9, 8.3, 8.9, 7.6, 6.8, 8.4, 8.0, 7.2, 6.9, 8.3, 7.9, 9.1, 6.8, 7.7, 8.0, 6.9, 7.5, 7.8, 8.2, 6.7, 7.4, 8.9, 7.5, 8.2, 9.1, 7.3, 7.8, 9.0, 8.4, 7.2, 6.9, 8.5, 7.3, 7.8],
-        'Production Line': ['Line 1']*52
-    })
-
+    df['Date'] = pd.to_datetime(df['Date'])
     # Define vibration threshold for failure
-    threshold = 5
+    vibration_threshold = 6  # This can be adjusted based on your requirements
 
-    # Calculate MTBF (Mean Time Between Failures)
-    failure_dates = weekly_data[weekly_data['Vibration Level (mm/s)'] > threshold]['Week']
-    mtbf = failure_dates.diff().dt.days.fillna(0)  # Difference in days between failures
-    weekly_data['MTBF'] = mtbf  # Add MTBF to the dataframe
+    # Filter relevant columns for analysis
+    weekly_data = df[['Date', 'Vibration Level (mm/s)', 'Production Line', 'Machine Runtime (hrs)']]
 
-    # Plot MTBF over time
-    fig = px.line(weekly_data, 
-                x='Week', 
-                y='MTBF', 
-                title='Mean Time Between Failures (MTBF)',
-                labels={'Week': 'Week Starting', 'MTBF': 'Mean Time Between Failures (Days)'},
+    # Calculate MTBF (Mean Time Between Failures) for each production line
+    production_lines = weekly_data['Production Line'].unique()
+    mtbf_data = []
+
+    for line in production_lines:
+        line_data = weekly_data[weekly_data['Production Line'] == line]
+        # Determine failure dates based on vibration threshold
+        failure_dates = line_data[line_data['Vibration Level (mm/s)'] > vibration_threshold]['Date']
+        # Calculate the difference between failure dates
+        mtbf = failure_dates.diff().dt.total_seconds() / 3600  # Convert difference to hours
+        line_data = line_data.copy()  # Create a copy to avoid modifying original data
+        line_data['MTBF (hrs)'] = mtbf.fillna(0)  # Fill NA values with 0 for initial entries
+        mtbf_data.append(line_data)
+
+    # Combine data for all production lines
+    mtbf_combined = pd.concat(mtbf_data)
+
+    # Plot MTBF over time for each production line
+    fig = px.line(mtbf_combined, 
+                x='Date', 
+                y='MTBF (hrs)', 
+                color='Production Line',  # Differentiate by production line
+                title='Mean Time Between Failures (MTBF) by Production Line',
+                labels={'Date': 'Date', 'MTBF (hrs)': 'Mean Time Between Failures (Hours)'},
                 line_shape='linear')
 
     # Customize the layout
     fig.update_layout(
-        xaxis_title='Week Starting',
-        yaxis_title='MTBF (Days)',
-        width = 800,
-        height = 800,
+        xaxis_title='Date',
+        yaxis_title='MTBF (Hours)',
+        width=800,
+        height=800,
         font=dict(size=12),
         hovermode='x unified'
     )
